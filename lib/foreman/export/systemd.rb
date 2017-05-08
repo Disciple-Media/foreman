@@ -8,6 +8,7 @@ class Foreman::Export::Systemd < Foreman::Export::Base
 
     Dir["#{location}/#{app}*.target"]
       .concat(Dir["#{location}/#{app}*.service"])
+      .concat(Dir["#{location}/#{app}*.socket"])
       .concat(Dir["#{location}/#{app}*.target.wants/#{app}*.service"])
       .each do |file|
       clean file
@@ -22,6 +23,11 @@ class Foreman::Export::Systemd < Foreman::Export::Base
     engine.each_process do |name, process|
       service_fn = "#{app}-#{name}@.service"
       write_template "systemd/process.service.erb", service_fn, binding
+
+      if process.command =~ /puma/
+        socket_fn = "#{app}-#{name}@.socket"
+        write_template "systemd/process.socket.erb", socket_fn, binding
+      end
 
       create_directory("#{app}-#{name}.target.wants")
       1.upto(engine.formation[name])

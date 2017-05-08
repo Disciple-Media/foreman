@@ -1,0 +1,12 @@
+[Unit]
+Description=HTTP Server Accept Sockets
+
+[Socket]
+ListenStream=0.0.0.0:%i
+
+NoDelay=true
+ReusePort=true
+Backlog=1024
+
+[Install]
+WantedBy=sockets.target
