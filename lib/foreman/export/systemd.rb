@@ -21,20 +21,23 @@ class Foreman::Export::Systemd < Foreman::Export::Base
     process_master_names = []
 
     engine.each_process do |name, process|
-      service_fn = "#{app}-#{name}@.service"
+      target_fn = service_fn = "#{app}-#{name}@.service"
+      wants_type = "service"
       write_template "systemd/process.service.erb", service_fn, binding
 
       if process.command =~ /puma/
-        socket_fn = "#{app}-#{name}@.socket"
+        target_fn = socket_fn = "#{app}-#{name}@.socket"
+        wants_type = "socket"
         write_template "systemd/process.socket.erb", socket_fn, binding
       end
 
       create_directory("#{app}-#{name}.target.wants")
+
       1.upto(engine.formation[name])
         .collect { |num| engine.port_for(process, num) }
-        .collect { |port| "#{app}-#{name}@#{port}.service" }
+        .collect { |port| "#{app}-#{name}@#{port}.#{wants_type}" }
         .each do |process_name|
-        create_symlink("#{app}-#{name}.target.wants/#{process_name}", "../#{service_fn}") rescue Errno::EEXIST # This is needed because rr-mocks do not call the origial cleanup
+        create_symlink("#{app}-#{name}.target.wants/#{process_name}", "../#{target_fn}") rescue Errno::EEXIST # This is needed because rr-mocks do not call the origial cleanup
       end
 
       write_template "systemd/process_master.target.erb", "#{app}-#{name}.target", binding
